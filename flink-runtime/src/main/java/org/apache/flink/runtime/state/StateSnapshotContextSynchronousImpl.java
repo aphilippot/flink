@@ -34,7 +34,8 @@ public class StateSnapshotContextSynchronousImpl implements StateSnapshotContext
 	
 	private final long checkpointId;
 	private final long checkpointTimestamp;
-	
+	private final boolean stopSourceSavepoint;
+
 	/** Factory for he checkpointing stream */
 	private final CheckpointStreamFactory streamFactory;
 	
@@ -57,8 +58,8 @@ public class StateSnapshotContextSynchronousImpl implements StateSnapshotContext
 		this.streamFactory = null;
 		this.keyGroupRange = KeyGroupRange.EMPTY_KEY_GROUP_RANGE;
 		this.closableRegistry = null;
+		this.stopSourceSavepoint = false;
 	}
-
 
 	public StateSnapshotContextSynchronousImpl(
 			long checkpointId,
@@ -69,6 +70,23 @@ public class StateSnapshotContextSynchronousImpl implements StateSnapshotContext
 
 		this.checkpointId = checkpointId;
 		this.checkpointTimestamp = checkpointTimestamp;
+		this.stopSourceSavepoint = false;
+		this.streamFactory = Preconditions.checkNotNull(streamFactory);
+		this.keyGroupRange = Preconditions.checkNotNull(keyGroupRange);
+		this.closableRegistry = Preconditions.checkNotNull(closableRegistry);
+	}
+
+	public StateSnapshotContextSynchronousImpl(
+			long checkpointId,
+			long checkpointTimestamp,
+			boolean stopSourceSavepoint,
+			CheckpointStreamFactory streamFactory,
+			KeyGroupRange keyGroupRange,
+			CloseableRegistry closableRegistry) {
+
+		this.checkpointId = checkpointId;
+		this.checkpointTimestamp = checkpointTimestamp;
+		this.stopSourceSavepoint = stopSourceSavepoint;
 		this.streamFactory = Preconditions.checkNotNull(streamFactory);
 		this.keyGroupRange = Preconditions.checkNotNull(keyGroupRange);
 		this.closableRegistry = Preconditions.checkNotNull(closableRegistry);
@@ -82,6 +100,11 @@ public class StateSnapshotContextSynchronousImpl implements StateSnapshotContext
 	@Override
 	public long getCheckpointTimestamp() {
 		return checkpointTimestamp;
+	}
+
+	@Override
+	public boolean isStopSourceSavepoint() {
+		return stopSourceSavepoint;
 	}
 
 	private CheckpointStreamFactory.CheckpointStateOutputStream openAndRegisterNewStream() throws Exception {

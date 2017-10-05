@@ -2815,7 +2815,8 @@ public class CheckpointCoordinatorTest {
 				System.currentTimeMillis(),
 				CheckpointProperties.forStandardCheckpoint(),
 				null,
-				true);
+				true,
+				false);
 
 		assertTrue(triggerResult.isFailure());
 		assertEquals(CheckpointDeclineReason.PERIODIC_SCHEDULER_SHUTDOWN, triggerResult.getFailureReason());
@@ -2825,6 +2826,7 @@ public class CheckpointCoordinatorTest {
 				System.currentTimeMillis(),
 				CheckpointProperties.forStandardCheckpoint(),
 				null,
+				false,
 				false);
 
 		assertFalse(triggerResult.isFailure());

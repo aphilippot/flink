@@ -341,6 +341,11 @@ public abstract class AbstractStreamOperator<OUT>
 
 	@Override
 	public final OperatorSnapshotResult snapshotState(long checkpointId, long timestamp) throws Exception {
+		return snapshotState(checkpointId, timestamp, false);
+	}
+
+	@Override
+	public final OperatorSnapshotResult snapshotState(long checkpointId, long timestamp, boolean stopSourceSavepoint) throws Exception {
 
 		KeyGroupRange keyGroupRange = null != keyedStateBackend ?
 				keyedStateBackend.getKeyGroupRange() : KeyGroupRange.EMPTY_KEY_GROUP_RANGE;
@@ -350,6 +355,7 @@ public abstract class AbstractStreamOperator<OUT>
 		try (StateSnapshotContextSynchronousImpl snapshotContext = new StateSnapshotContextSynchronousImpl(
 				checkpointId,
 				timestamp,
+				stopSourceSavepoint,
 				checkpointStreamFactory,
 				keyGroupRange,
 				getContainingTask().getCancelables())) {

@@ -37,6 +37,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
@@ -90,6 +93,11 @@ public class KafkaConsumerThread extends Thread {
 
 	/** Flag tracking whether the latest commit request has completed */
 	private volatile boolean commitInProgress;
+
+	private volatile boolean waitShutdown = false;
+	private volatile Lock waitLock = new ReentrantLock();
+	private volatile Condition waitSavepointCompleteCondition = waitLock.newCondition();
+	private volatile Condition waitNotRunningCondition = waitLock.newCondition();
 
 
 	public KafkaConsumerThread(
@@ -239,6 +247,21 @@ public class KafkaConsumerThread extends Thread {
 					// fall through the loop
 				}
 			}
+
+			log.info("Kafka consumer thread stop running");
+			if (waitShutdown) {
+				waitLock.lock();
+				waitNotRunningCondition.signal();
+				try {
+					while (waitShutdown) {
+						log.info("Wait thread shutdown complete");
+						waitSavepointCompleteCondition.await();
+					}
+				} finally {
+					waitLock.unlock();
+				}
+			}
+
 			// end main fetch loop
 		}
 		catch (Throwable t) {
@@ -265,7 +288,18 @@ public class KafkaConsumerThread extends Thread {
 	 * Shuts this thread down, waking up the thread gracefully if blocked (without Thread.interrupt() calls).
 	 */
 	public void shutdown() {
+		log.info("Shutdown kafka consumer thread");
 		running = false;
+
+		if (waitShutdown) {
+			waitLock.lock();
+			try {
+				waitShutdown = false;
+				waitSavepointCompleteCondition.signal();
+			} finally {
+				waitLock.unlock();
+			}
+		}
 
 		// We cannot call close() on the KafkaConsumer, because it will actually throw
 		// an exception if a concurrent call is in progress
@@ -301,6 +335,19 @@ public class KafkaConsumerThread extends Thread {
 		handover.wakeupProducer();
 		if (consumer != null) {
 			consumer.wakeup();
+		}
+	}
+
+	void stopFetchLoopBeforeSavepoint() throws Exception {
+		log.info("Stop consumer thread loop before savepoint running: " + running);
+		waitLock.lock();
+		try {
+			waitShutdown = true;
+			running = false;
+			// return only once fetch loop is stoped and no more messages are consumed
+			waitNotRunningCondition.await();
+		} finally {
+			waitLock.unlock();
 		}
 	}
 

@@ -559,7 +559,7 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
 	}
 
 	private boolean performCheckpoint(CheckpointMetaData checkpointMetaData) throws Exception {
-		LOG.debug("Starting checkpoint {} on task {}", checkpointMetaData.getCheckpointId(), getName());
+		LOG.debug("Starting checkpoint {} on task {} (isStopSourceSavepoint = {})", checkpointMetaData.getCheckpointId(), getName(), checkpointMetaData.isStopSourceSavepoint());
 
 		synchronized (lock) {
 			if (isRunning) {
@@ -1156,7 +1156,8 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
 
 				OperatorSnapshotResult snapshotInProgress = op.snapshotState(
 						checkpointMetaData.getCheckpointId(),
-						checkpointMetaData.getTimestamp());
+						checkpointMetaData.getTimestamp(),
+						checkpointMetaData.isStopSourceSavepoint());
 
 				snapshotInProgressList.add(snapshotInProgress);
 			} else {

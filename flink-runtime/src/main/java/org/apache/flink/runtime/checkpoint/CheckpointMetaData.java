@@ -35,23 +35,35 @@ public class CheckpointMetaData implements Serializable {
 	/** The timestamp of the checkpoint */
 	private final long timestamp;
 
+	private final boolean stopSourceSavepoint;
+
 	private final CheckpointMetrics metrics;
 
 	public CheckpointMetaData(long checkpointId, long timestamp) {
 		this.checkpointId = checkpointId;
 		this.timestamp = timestamp;
+		this.stopSourceSavepoint = false;
+		this.metrics = new CheckpointMetrics();
+	}
+
+	public CheckpointMetaData(long checkpointId, long timestamp, boolean stopSourceSavepoint) {
+		this.checkpointId = checkpointId;
+		this.timestamp = timestamp;
+		this.stopSourceSavepoint = stopSourceSavepoint;
 		this.metrics = new CheckpointMetrics();
 	}
 
 	public CheckpointMetaData(
 			long checkpointId,
 			long timestamp,
+			boolean stopSourceSavepoint,
 			long synchronousDurationMillis,
 			long asynchronousDurationMillis,
 			long bytesBufferedInAlignment,
 			long alignmentDurationNanos) {
 		this.checkpointId = checkpointId;
 		this.timestamp = timestamp;
+		this.stopSourceSavepoint = stopSourceSavepoint;
 		this.metrics = new CheckpointMetrics(
 				bytesBufferedInAlignment,
 				alignmentDurationNanos,
@@ -62,9 +74,11 @@ public class CheckpointMetaData implements Serializable {
 	public CheckpointMetaData(
 			long checkpointId,
 			long timestamp,
+			boolean stopSourceSavepoint,
 			CheckpointMetrics metrics) {
 		this.checkpointId = checkpointId;
 		this.timestamp = timestamp;
+		this.stopSourceSavepoint = stopSourceSavepoint;
 		this.metrics = Preconditions.checkNotNull(metrics);
 	}
 
@@ -102,6 +116,10 @@ public class CheckpointMetaData implements Serializable {
 
 	public long getTimestamp() {
 		return timestamp;
+	}
+
+	public boolean isStopSourceSavepoint() {
+		return stopSourceSavepoint;
 	}
 
 	public long getBytesBufferedInAlignment() {

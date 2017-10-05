@@ -165,7 +165,8 @@ public interface TaskManagerGateway {
 		ExecutionAttemptID executionAttemptID,
 		JobID jobId,
 		long checkpointId,
-		long timestamp);
+		long timestamp,
+		boolean stopSourceSavepoint);
 
 	/**
 	 * Request the task manager log from the task manager.

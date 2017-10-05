@@ -145,6 +145,8 @@ public abstract class AbstractFetcher<T, KPH> {
 	
 	public abstract void cancel();
 
+	public abstract void stopFetchLoopBeforeSavepoint() throws Exception;
+
 	// ------------------------------------------------------------------------
 	//  Kafka version specifics
 	// ------------------------------------------------------------------------

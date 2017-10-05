@@ -226,6 +226,11 @@ public class AbstractFetcherTimestampsTest {
 		public void commitInternalOffsetsToKafka(Map<KafkaTopicPartition, Long> offsets) throws Exception {
 			throw new UnsupportedOperationException();
 		}
+
+		@Override
+		public void stopFetchLoopBeforeSavepoint() {
+			throw new UnsupportedOperationException();
+		}
 	}
 
 	// ------------------------------------------------------------------------

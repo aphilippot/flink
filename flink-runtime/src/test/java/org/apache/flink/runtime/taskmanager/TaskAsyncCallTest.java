@@ -88,7 +88,7 @@ public class TaskAsyncCallTest {
 			awaitLatch.await();
 			
 			for (int i = 1; i <= NUM_CALLS; i++) {
-				task.triggerCheckpointBarrier(i, 156865867234L);
+				task.triggerCheckpointBarrier(i, 156865867234L, false);
 			}
 			
 			triggerLatch.await();
@@ -118,7 +118,7 @@ public class TaskAsyncCallTest {
 			awaitLatch.await();
 
 			for (int i = 1; i <= NUM_CALLS; i++) {
-				task.triggerCheckpointBarrier(i, 156865867234L);
+				task.triggerCheckpointBarrier(i, 156865867234L, false);
 				task.notifyCheckpointComplete(i);
 			}
 

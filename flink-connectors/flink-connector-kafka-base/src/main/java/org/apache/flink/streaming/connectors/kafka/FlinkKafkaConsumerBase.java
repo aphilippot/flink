@@ -339,6 +339,11 @@ public abstract class FlinkKafkaConsumerBase<T> extends RichParallelSourceFuncti
 		if (!running) {
 			LOG.debug("snapshotState() called on closed source");
 		} else {
+			if (context.isStopSourceSavepoint()) {
+				LOG.info("snapshotState() with a stopSourceSavepoint");
+				kafkaFetcher.stopFetchLoopBeforeSavepoint();
+				LOG.info("snapshotState() with a stopSourceSavepoint fetch loop stoped");
+			}
 
 			offsetsStateForCheckpoint.clear();
 
@@ -403,7 +408,7 @@ public abstract class FlinkKafkaConsumerBase<T> extends RichParallelSourceFuncti
 			LOG.debug("notifyCheckpointComplete() called on uninitialized source");
 			return;
 		}
-		
+
 		// only one commit operation must be in progress
 		if (LOG.isDebugEnabled()) {
 			LOG.debug("Committing offsets to Kafka/ZooKeeper for checkpoint " + checkpointId);

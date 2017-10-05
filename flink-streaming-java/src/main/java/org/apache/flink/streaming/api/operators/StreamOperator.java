@@ -101,6 +101,16 @@ public interface StreamOperator<OUT> extends Serializable {
 	OperatorSnapshotResult snapshotState(long checkpointId, long timestamp) throws Exception;
 
 	/**
+	 * Called to draw a state snapshot from the operator.
+	 *
+	 * @return a runnable future to the state handle that points to the snapshotted state. For synchronous implementations,
+	 * the runnable might already be finished.
+	 *
+	 * @throws Exception exception that happened during snapshotting.
+	 */
+	OperatorSnapshotResult snapshotState(long checkpointId, long timestamp, boolean stopSourceSavepoint) throws Exception;
+
+	/**
 	 * Takes a snapshot of the legacy operator state defined via {@link StreamCheckpointedOperator}.
 	 * 
 	 * @return The handle to the legacy operator state, or null, if no state was snapshotted.

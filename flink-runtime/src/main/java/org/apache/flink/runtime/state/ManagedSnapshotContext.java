@@ -43,4 +43,6 @@ public interface ManagedSnapshotContext {
 	 * the state snapshot is taken.
 	 */
 	long getCheckpointTimestamp();
+
+	boolean isStopSourceSavepoint();
 }

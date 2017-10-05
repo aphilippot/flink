@@ -674,12 +674,23 @@ public class Execution implements AccessExecution, Archiveable<ArchivedExecution
 	 * @param timestamp of the checkpoint to trigger
 	 */
 	public void triggerCheckpoint(long checkpointId, long timestamp) {
+		triggerCheckpoint(checkpointId, timestamp, false);
+	}
+
+	/**
+	 * Trigger a new checkpoint on the task of this execution.
+	 *
+	 * @param checkpointId of th checkpoint to trigger
+	 * @param timestamp of the checkpoint to trigger
+	 * @param stopSourceSavepoint of the savepoint to trigger
+	 */
+	public void triggerCheckpoint(long checkpointId, long timestamp, boolean stopSourceSavepoint) {
 		final SimpleSlot slot = assignedResource;
 
 		if (slot != null) {
 			final TaskManagerGateway taskManagerGateway = slot.getTaskManagerGateway();
 
-			taskManagerGateway.triggerCheckpoint(attemptId, getVertex().getJobId(), checkpointId, timestamp);
+			taskManagerGateway.triggerCheckpoint(attemptId, getVertex().getJobId(), checkpointId, timestamp, stopSourceSavepoint);
 		} else {
 			LOG.debug("The execution has no slot assigned. This indicates that the execution is " +
 				"no longer running.");

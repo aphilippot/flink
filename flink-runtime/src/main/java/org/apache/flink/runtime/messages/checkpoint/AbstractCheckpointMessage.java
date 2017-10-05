@@ -37,7 +37,7 @@ public abstract class AbstractCheckpointMessage implements java.io.Serializable 
 	/** The ID of the checkpoint that this message coordinates */
 	private final long checkpointId;
 
-	
+
 	protected AbstractCheckpointMessage(JobID job, ExecutionAttemptID taskExecutionId, long checkpointId) {
 		if (job == null || taskExecutionId == null) {
 			throw new NullPointerException();
@@ -60,6 +60,10 @@ public abstract class AbstractCheckpointMessage implements java.io.Serializable 
 
 	public long getCheckpointId() {
 		return checkpointId;
+	}
+
+	public boolean isStopSourceSavepoint() {
+		return false;
 	}
 
 	// --------------------------------------------------------------------------------------------

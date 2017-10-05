@@ -196,12 +196,13 @@ public class ActorTaskManagerGateway implements TaskManagerGateway {
 			ExecutionAttemptID executionAttemptID,
 			JobID jobId,
 			long checkpointId,
-			long timestamp) {
+			long timestamp,
+			boolean stopSourceSavepoint) {
 
 		Preconditions.checkNotNull(executionAttemptID);
 		Preconditions.checkNotNull(jobId);
 
-		actorGateway.tell(new TriggerCheckpoint(jobId, executionAttemptID, checkpointId, timestamp));
+		actorGateway.tell(new TriggerCheckpoint(jobId, executionAttemptID, checkpointId, timestamp, stopSourceSavepoint));
 	}
 
 	@Override

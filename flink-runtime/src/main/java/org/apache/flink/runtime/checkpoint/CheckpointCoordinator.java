@@ -303,10 +303,18 @@ public class CheckpointCoordinator {
 	 * @throws Exception             Failures during triggering are forwarded
 	 */
 	public Future<CompletedCheckpoint> triggerSavepoint(long timestamp, String targetDirectory) throws Exception {
+		return triggerSavepoint(timestamp, targetDirectory, false);
+	}
+
+	public Future<CompletedCheckpoint> triggerStopSourceSavepoint(long timestamp, String targetDirectory) throws Exception {
+		return triggerSavepoint(timestamp, targetDirectory, true);
+	}
+
+	private Future<CompletedCheckpoint> triggerSavepoint(long timestamp, String targetDirectory, boolean stopSourceSavepoint) throws Exception {
 		checkNotNull(targetDirectory, "Savepoint target directory");
 
 		CheckpointProperties props = CheckpointProperties.forStandardSavepoint();
-		CheckpointTriggerResult result = triggerCheckpoint(timestamp, props, targetDirectory, false);
+		CheckpointTriggerResult result = triggerCheckpoint(timestamp, props, targetDirectory, false, stopSourceSavepoint);
 
 		if (result.isSuccess()) {
 			return result.getPendingCheckpoint().getCompletionFuture();
@@ -328,7 +336,7 @@ public class CheckpointCoordinator {
 	 * @return <code>true</code> if triggering the checkpoint succeeded.
 	 */
 	public boolean triggerCheckpoint(long timestamp, boolean isPeriodic) {
-		return triggerCheckpoint(timestamp, checkpointProperties, checkpointDirectory, isPeriodic).isSuccess();
+		return triggerCheckpoint(timestamp, checkpointProperties, checkpointDirectory, isPeriodic, false).isSuccess();
 	}
 
 	@VisibleForTesting
@@ -336,7 +344,8 @@ public class CheckpointCoordinator {
 			long timestamp,
 			CheckpointProperties props,
 			String targetDirectory,
-			boolean isPeriodic) {
+			boolean isPeriodic,
+			boolean stopSourceSavepoint) {
 
 		// Sanity check
 		if (props.externalizeCheckpoint() && targetDirectory == null) {
@@ -522,7 +531,7 @@ public class CheckpointCoordinator {
 						}
 					}
 
-					LOG.info("Triggering checkpoint " + checkpointID + " @ " + timestamp);
+					LOG.info("Triggering checkpoint " + checkpointID + " @ " + timestamp + (stopSourceSavepoint ? "#withStopSourceSavepoint" : ""));
 
 					pendingCheckpoints.put(checkpointID, checkpoint);
 
@@ -539,7 +548,7 @@ public class CheckpointCoordinator {
 
 				// send the messages to the tasks that trigger their checkpoint
 				for (Execution execution: executions) {
-					execution.triggerCheckpoint(checkpointID, timestamp);
+					execution.triggerCheckpoint(checkpointID, timestamp, stopSourceSavepoint);
 				}
 
 				numUnsuccessfulCheckpointsTriggers.set(0);

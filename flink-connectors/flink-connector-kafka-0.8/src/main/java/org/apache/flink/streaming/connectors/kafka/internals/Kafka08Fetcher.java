@@ -330,6 +330,11 @@ public class Kafka08Fetcher<T> extends AbstractFetcher<T, TopicAndPartition> {
 		this.unassignedPartitionsQueue.addIfOpen(MARKER);
 	}
 
+	@Override
+	public void stopFetchLoopBeforeSavepoint() {
+		// TODO
+	}
+
 	// ------------------------------------------------------------------------
 	//  Kafka 0.8 specific class instantiation
 	// ------------------------------------------------------------------------

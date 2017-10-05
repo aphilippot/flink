@@ -1103,9 +1103,9 @@ public class Task implements Runnable, TaskActions {
 	 * @param checkpointID The ID identifying the checkpoint.
 	 * @param checkpointTimestamp The timestamp associated with the checkpoint.
 	 */
-	public void triggerCheckpointBarrier(final long checkpointID, long checkpointTimestamp) {
+	public void triggerCheckpointBarrier(final long checkpointID, long checkpointTimestamp, boolean stopSourceSavepoint) {
 		final AbstractInvokable invokable = this.invokable;
-		final CheckpointMetaData checkpointMetaData = new CheckpointMetaData(checkpointID, checkpointTimestamp);
+		final CheckpointMetaData checkpointMetaData = new CheckpointMetaData(checkpointID, checkpointTimestamp, stopSourceSavepoint);
 
 		if (executionState == ExecutionState.RUNNING && invokable != null) {
 
@@ -1117,8 +1117,8 @@ public class Task implements Runnable, TaskActions {
 				Runnable runnable = new Runnable() {
 					@Override
 					public void run() {
-						// activate safety net for checkpointing thread
 						LOG.debug("Creating FileSystem stream leak safety net for {}", Thread.currentThread().getName());
+						// activate safety net for checkpointing thread
 						FileSystem.createAndSetFileSystemCloseableRegistryForThread();
 
 						try {

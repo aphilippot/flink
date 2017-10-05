@@ -619,7 +619,7 @@ public class JobManagerHARecoveryTest {
 					new SubtaskState(chainedStateHandle, null, null, null, null);
 
 			getEnvironment().acknowledgeCheckpoint(
-					new CheckpointMetaData(checkpointMetaData.getCheckpointId(), -1, 0L, 0L, 0L, 0L),
+					new CheckpointMetaData(checkpointMetaData.getCheckpointId(), -1, false, 0L, 0L, 0L, 0L),
 					checkpointStateHandles);
 			return true;
 		}

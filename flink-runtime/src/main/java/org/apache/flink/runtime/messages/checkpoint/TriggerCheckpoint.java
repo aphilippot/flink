@@ -32,16 +32,24 @@ public class TriggerCheckpoint extends AbstractCheckpointMessage implements java
 	
 	/** The timestamp associated with the checkpoint */
 	private final long timestamp;
+	/** Is the checkpoint is a stop source savepoint */
+	private final boolean stopSourceSavepoint;
 
-	public TriggerCheckpoint(JobID job, ExecutionAttemptID taskExecutionId, long checkpointId, long timestamp) {
+	public TriggerCheckpoint(JobID job, ExecutionAttemptID taskExecutionId, long checkpointId, long timestamp, boolean stopSourceSavepoint) {
 		super(job, taskExecutionId, checkpointId);
 		this.timestamp = timestamp;
+		this.stopSourceSavepoint = stopSourceSavepoint;
 	}
 
 	// --------------------------------------------------------------------------------------------
 	
 	public long getTimestamp() {
 		return timestamp;
+	}
+
+	@Override
+	public boolean isStopSourceSavepoint() {
+		return stopSourceSavepoint;
 	}
 
 	// --------------------------------------------------------------------------------------------
