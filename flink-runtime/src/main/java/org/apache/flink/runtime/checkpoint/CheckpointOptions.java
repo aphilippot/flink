@@ -44,11 +44,16 @@ public class CheckpointOptions implements Serializable {
 	@Nullable
 	private final String targetLocation;
 
+	/** Indicate if the source must be stop before triggering the checkpoint (must be a savepoint) **/
+	private final boolean stopSourceBeforeSavepoint;
+
 	private CheckpointOptions(
 			@Nonnull CheckpointType checkpointType,
-			@Nullable  String targetLocation) {
+			@Nullable  String targetLocation,
+			boolean stopSourceBeforeSavepoint) {
 		this.checkpointType = checkNotNull(checkpointType);
 		this.targetLocation = targetLocation;
+		this.stopSourceBeforeSavepoint = stopSourceBeforeSavepoint;
 	}
 
 	/**
@@ -72,6 +77,15 @@ public class CheckpointOptions implements Serializable {
 		return targetLocation;
 	}
 
+	/**
+	 * Returns whether the source must be stopped before starting a savepoint.
+	 *
+	 * @return <code>true</code> if the source must be stopped before a savepoint, <code>false</code> otherwise.
+	 */
+	public boolean isStopSourceBeforeSavepoint() {
+		return stopSourceBeforeSavepoint;
+	}
+
 	@Override
 	public String toString() {
 		return "CheckpointOptions(" + checkpointType + ")";
@@ -79,7 +93,8 @@ public class CheckpointOptions implements Serializable {
 
 	// ------------------------------------------------------------------------
 
-	private static final CheckpointOptions FULL_CHECKPOINT = new CheckpointOptions(CheckpointType.FULL_CHECKPOINT, null);
+	private static final CheckpointOptions FULL_CHECKPOINT =
+		new CheckpointOptions(CheckpointType.FULL_CHECKPOINT, null, false);
 
 	public static CheckpointOptions forFullCheckpoint() {
 		return FULL_CHECKPOINT;
@@ -87,7 +102,12 @@ public class CheckpointOptions implements Serializable {
 
 	public static CheckpointOptions forSavepoint(String targetDirectory) {
 		checkNotNull(targetDirectory, "targetDirectory");
-		return new CheckpointOptions(CheckpointType.SAVEPOINT, targetDirectory);
+		return new CheckpointOptions(CheckpointType.SAVEPOINT, targetDirectory, false);
+	}
+
+	public static CheckpointOptions forStopSourceSavepoint(String targetDirectory) {
+		checkNotNull(targetDirectory, "targetDirectory");
+		return new CheckpointOptions(CheckpointType.SAVEPOINT, targetDirectory, true);
 	}
 
 	// ------------------------------------------------------------------------

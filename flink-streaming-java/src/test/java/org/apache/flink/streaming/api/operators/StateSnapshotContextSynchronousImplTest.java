@@ -49,7 +49,7 @@ public class StateSnapshotContextSynchronousImplTest extends TestLogger {
 		CloseableRegistry closableRegistry = new CloseableRegistry();
 		CheckpointStreamFactory streamFactory = new MemCheckpointStreamFactory(1024);
 		KeyGroupRange keyGroupRange = new KeyGroupRange(0, 2);
-		this.snapshotContext = new StateSnapshotContextSynchronousImpl(42, 4711, streamFactory, keyGroupRange, closableRegistry);
+		this.snapshotContext = new StateSnapshotContextSynchronousImpl(42, 4711, false, streamFactory, keyGroupRange, closableRegistry);
 	}
 
 	@Test
@@ -92,6 +92,7 @@ public class StateSnapshotContextSynchronousImplTest extends TestLogger {
 		StateSnapshotContextSynchronousImpl context = new StateSnapshotContextSynchronousImpl(
 			checkpointId,
 			checkpointTimestamp,
+			false,
 			streamFactory,
 			keyGroupRange,
 			closableRegistry);

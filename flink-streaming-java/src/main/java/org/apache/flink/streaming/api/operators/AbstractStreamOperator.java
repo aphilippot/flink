@@ -378,6 +378,7 @@ public abstract class AbstractStreamOperator<OUT>
 		try (StateSnapshotContextSynchronousImpl snapshotContext = new StateSnapshotContextSynchronousImpl(
 				checkpointId,
 				timestamp,
+				checkpointOptions.isStopSourceBeforeSavepoint(),
 				factory,
 				keyGroupRange,
 				getContainingTask().getCancelables())) {

@@ -566,6 +566,11 @@ public abstract class FlinkKafkaConsumerBase<T> extends RichParallelSourceFuncti
 		if (!running) {
 			LOG.debug("snapshotState() called on closed source");
 		} else {
+			if (kafkaFetcher != null && context.isStopSourceBeforeSavepoint()) {
+				LOG.info("snapshotState() with a stopSourceSavepoint");
+				kafkaFetcher.stopFetchLoopBeforeSavepoint();
+				LOG.info("snapshotState() with a stopSourceSavepoint fetch loop stoped");
+			}
 
 			offsetsStateForCheckpoint.clear();
 

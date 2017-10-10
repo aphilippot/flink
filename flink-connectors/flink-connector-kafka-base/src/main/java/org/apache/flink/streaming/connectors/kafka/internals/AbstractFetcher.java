@@ -154,6 +154,10 @@ public abstract class AbstractFetcher<T, KPH> {
 	
 	public abstract void cancel();
 
+	public void stopFetchLoopBeforeSavepoint() throws Exception {
+		// do nothing, to override
+	}
+
 	// ------------------------------------------------------------------------
 	//  Kafka version specifics
 	// ------------------------------------------------------------------------

@@ -43,4 +43,10 @@ public interface ManagedSnapshotContext {
 	 * the state snapshot is taken.
 	 */
 	long getCheckpointTimestamp();
+
+	/**
+	 * Returns whether the source must be stopped before starting a savepoint.
+	 */
+	boolean isStopSourceBeforeSavepoint();
+
 }

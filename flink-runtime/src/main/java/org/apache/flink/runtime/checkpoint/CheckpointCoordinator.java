@@ -367,9 +367,16 @@ public class CheckpointCoordinator {
 	 * @throws Exception             Failures during triggering are forwarded
 	 */
 	public Future<CompletedCheckpoint> triggerSavepoint(long timestamp, String targetDirectory) throws Exception {
-		checkNotNull(targetDirectory, "Savepoint target directory");
+		return triggerSavepoint(timestamp, targetDirectory, CheckpointProperties.forStandardSavepoint());
+	}
 
-		CheckpointProperties props = CheckpointProperties.forStandardSavepoint();
+	public Future<CompletedCheckpoint> triggerStopSourceSavepoint(long timestamp, String targetDirectory) throws Exception {
+		return triggerSavepoint(timestamp, targetDirectory, CheckpointProperties.forStopSourceBeforeSavepoint());
+	}
+
+	private Future<CompletedCheckpoint> triggerSavepoint(long timestamp, String targetDirectory,
+														CheckpointProperties props) throws Exception {
+		checkNotNull(targetDirectory, "Savepoint target directory");
 
 		// Create the unique savepoint directory
 		final String savepointDirectory = SavepointStore
@@ -643,7 +650,8 @@ public class CheckpointCoordinator {
 						}
 					}
 
-					LOG.info("Triggering checkpoint " + checkpointID + " @ " + timestamp);
+					LOG.info("Triggering checkpoint " + checkpointID + " @ " + timestamp +
+						(props.isStopSourceBeforeSavepoint() ? "#withStopSourceBeforeSavepoint" : ""));
 
 					pendingCheckpoints.put(checkpointID, checkpoint);
 
@@ -669,7 +677,11 @@ public class CheckpointCoordinator {
 				if (!props.isSavepoint()) {
 					checkpointOptions = CheckpointOptions.forFullCheckpoint();
 				} else {
-					checkpointOptions = CheckpointOptions.forSavepoint(targetDirectory);
+					if (props.isStopSourceBeforeSavepoint()) {
+						checkpointOptions = CheckpointOptions.forStopSourceSavepoint(targetDirectory);
+					} else {
+						checkpointOptions = CheckpointOptions.forSavepoint(targetDirectory);
+					}
 				}
 
 				// send the messages to the tasks that trigger their checkpoint
