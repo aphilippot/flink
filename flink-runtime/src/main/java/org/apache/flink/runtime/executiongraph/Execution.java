@@ -135,6 +135,8 @@ public class Execution implements AccessExecution, Archiveable<ArchivedExecution
 
 	private volatile SimpleSlot assignedResource;     // once assigned, never changes until the execution is archived
 
+	private volatile SimpleSlot assignedFutureResource;     // once assigned, never changes until the execution is archived
+
 	private volatile Throwable failureCause;          // once assigned, never changes
 
 	/** The handle to the state that the task gets on restore */
@@ -234,6 +236,15 @@ public class Execution implements AccessExecution, Archiveable<ArchivedExecution
 		// returns non-null only when a location is already assigned
 		return assignedResource != null ? assignedResource.getTaskManagerLocation() : null;
 	}
+
+	public void setAssignedFutureResource(SimpleSlot slot) {
+		assignedFutureResource = slot;
+	}
+
+	public  SimpleSlot getAssignedFutureResource() {
+		return assignedFutureResource;
+	}
+
 
 	public Throwable getFailureCause() {
 		return failureCause;
@@ -403,6 +414,7 @@ public class Execution implements AccessExecution, Archiveable<ArchivedExecution
 			if (!slot.setExecutedVertex(this)) {
 				throw new JobException("Could not assign the ExecutionVertex to the slot " + slot);
 			}
+
 			this.assignedResource = slot;
 
 			// race double check, did we fail/cancel and do we need to release the slot?

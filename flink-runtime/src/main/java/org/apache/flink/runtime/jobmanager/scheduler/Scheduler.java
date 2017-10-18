@@ -139,6 +139,7 @@ public class Scheduler implements InstanceListener, SlotAvailabilityListener, Sl
 			final Object ret = scheduleTask(task, allowQueued);
 
 			if (ret instanceof SimpleSlot) {
+				task.getTaskToExecute().setAssignedFutureResource((SimpleSlot) ret);
 				return FlinkCompletableFuture.completed((SimpleSlot) ret);
 			}
 			else if (ret instanceof Future) {
