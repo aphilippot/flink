@@ -19,6 +19,7 @@ package org.apache.flink.streaming.connectors.kafka;
 
 import org.apache.commons.collections.map.LinkedMap;
 import org.apache.flink.annotation.VisibleForTesting;
+import org.apache.flink.api.common.functions.StoppableFetchingSourceFunction;
 import org.apache.flink.api.common.state.ListState;
 import org.apache.flink.api.common.state.OperatorStateStore;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
@@ -73,6 +74,7 @@ public abstract class FlinkKafkaConsumerBase<T> extends RichParallelSourceFuncti
 		CheckpointListener,
 		ResultTypeQueryable<T>,
 		CheckpointedFunction,
+		StoppableFetchingSourceFunction,
 		CheckpointedRestoring<HashMap<KafkaTopicPartition, Long>> {
 
 	private static final long serialVersionUID = -6272159445203409112L;
@@ -562,16 +564,19 @@ public abstract class FlinkKafkaConsumerBase<T> extends RichParallelSourceFuncti
 	}
 
 	@Override
+	public void stopFetching() throws Exception {
+		if (kafkaFetcher != null) {
+			LOG.info("stopFetching()");
+			kafkaFetcher.stopFetchLoopBeforeSavepoint();
+			LOG.info("finish stopFetching()");
+		}
+	}
+
+	@Override
 	public final void snapshotState(FunctionSnapshotContext context) throws Exception {
 		if (!running) {
 			LOG.debug("snapshotState() called on closed source");
 		} else {
-			if (kafkaFetcher != null && context.isStopSourceBeforeSavepoint()) {
-				LOG.info("snapshotState() with a stopSourceSavepoint");
-				kafkaFetcher.stopFetchLoopBeforeSavepoint();
-				LOG.info("snapshotState() with a stopSourceSavepoint fetch loop stoped");
-			}
-
 			offsetsStateForCheckpoint.clear();
 
 			final AbstractFetcher<?, ?> fetcher = this.kafkaFetcher;

@@ -19,12 +19,15 @@
 package org.apache.flink.streaming.runtime.tasks;
 
 import org.apache.flink.annotation.Internal;
+import org.apache.flink.api.common.functions.StoppableFetchingSourceFunction;
 import org.apache.flink.runtime.checkpoint.CheckpointMetaData;
 import org.apache.flink.runtime.checkpoint.CheckpointOptions;
 import org.apache.flink.streaming.api.checkpoint.ExternallyInducedSource;
 import org.apache.flink.streaming.api.functions.source.SourceFunction;
 import org.apache.flink.streaming.api.operators.StreamSource;
 import org.apache.flink.util.FlinkException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * {@link StreamTask} for executing a {@link StreamSource}.
@@ -43,6 +46,8 @@ import org.apache.flink.util.FlinkException;
 @Internal
 public class SourceStreamTask<OUT, SRC extends SourceFunction<OUT>, OP extends StreamSource<OUT, SRC>>
 	extends StreamTask<OUT, OP> {
+
+	private static final Logger LOG = LoggerFactory.getLogger(SourceStreamTask.class);
 
 	private volatile boolean externallyInducedCheckpoints;
 
@@ -108,6 +113,14 @@ public class SourceStreamTask<OUT, SRC extends SourceFunction<OUT>, OP extends S
 
 	@Override
 	public boolean triggerCheckpoint(CheckpointMetaData checkpointMetaData, CheckpointOptions checkpointOptions) throws Exception {
+		if (checkpointOptions.isStopSourceBeforeSavepoint()) {
+			// stop stream source
+			LOG.info("triggerCheckpoint {} with stopSourceBeforeSavepoint", checkpointMetaData.getCheckpointId());
+			if (headOperator.getUserFunction() instanceof StoppableFetchingSourceFunction) {
+				LOG.info("stop fetching");
+				((StoppableFetchingSourceFunction) headOperator.getUserFunction()).stopFetching();
+			}
+		}
 		if (!externallyInducedCheckpoints) {
 			return super.triggerCheckpoint(checkpointMetaData, checkpointOptions);
 		}

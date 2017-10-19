@@ -35,9 +35,6 @@ public class StateSnapshotContextSynchronousImpl implements StateSnapshotContext
 	private final long checkpointId;
 	private final long checkpointTimestamp;
 
-	/** Indicate if the source must be stop before triggering the checkpoint (must be a savepoint) **/
-	private final boolean stopSourceBeforeSavepoint;
-
 	/** Factory for he checkpointing stream */
 	private final CheckpointStreamFactory streamFactory;
 	
@@ -57,7 +54,6 @@ public class StateSnapshotContextSynchronousImpl implements StateSnapshotContext
 	public StateSnapshotContextSynchronousImpl(long checkpointId, long checkpointTimestamp) {
 		this.checkpointId = checkpointId;
 		this.checkpointTimestamp = checkpointTimestamp;
-		this.stopSourceBeforeSavepoint = false;
 		this.streamFactory = null;
 		this.keyGroupRange = KeyGroupRange.EMPTY_KEY_GROUP_RANGE;
 		this.closableRegistry = null;
@@ -67,14 +63,12 @@ public class StateSnapshotContextSynchronousImpl implements StateSnapshotContext
 	public StateSnapshotContextSynchronousImpl(
 			long checkpointId,
 			long checkpointTimestamp,
-			boolean stopSourceBeforeSavepoint,
 			CheckpointStreamFactory streamFactory,
 			KeyGroupRange keyGroupRange,
 			CloseableRegistry closableRegistry) {
 
 		this.checkpointId = checkpointId;
 		this.checkpointTimestamp = checkpointTimestamp;
-		this.stopSourceBeforeSavepoint = stopSourceBeforeSavepoint;
 		this.streamFactory = Preconditions.checkNotNull(streamFactory);
 		this.keyGroupRange = Preconditions.checkNotNull(keyGroupRange);
 		this.closableRegistry = Preconditions.checkNotNull(closableRegistry);
@@ -88,11 +82,6 @@ public class StateSnapshotContextSynchronousImpl implements StateSnapshotContext
 	@Override
 	public long getCheckpointTimestamp() {
 		return checkpointTimestamp;
-	}
-
-	@Override
-	public boolean isStopSourceBeforeSavepoint() {
-		return stopSourceBeforeSavepoint;
 	}
 
 	private CheckpointStreamFactory.CheckpointStateOutputStream openAndRegisterNewStream() throws Exception {
