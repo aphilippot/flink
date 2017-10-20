@@ -224,6 +224,12 @@ public abstract class AbstractFetcher<T, KPH> {
 
 	public abstract void cancel();
 
+	/**
+	 * Stop the fetch loop without terminating fetcher to allow offset commit
+	 * The fetcher will be cancel with {@code cancel()} method
+	 */
+	public abstract void stopFetchLoop();
+
 	// ------------------------------------------------------------------------
 	//  Kafka version specifics
 	// ------------------------------------------------------------------------

@@ -44,11 +44,19 @@ public class CheckpointOptions implements Serializable {
 	@Nullable
 	private final String targetLocation;
 
+	/**
+	 * If the source stream task must be stopped before triggering the checkpoint
+	 * (only apply on savepoint)
+	 * */
+	private final boolean stopFetchingSource;
+
 	private CheckpointOptions(
 			@Nonnull CheckpointType checkpointType,
-			@Nullable  String targetLocation) {
+			@Nullable  String targetLocation,
+			boolean stopFetchingSource) {
 		this.checkpointType = checkNotNull(checkpointType);
 		this.targetLocation = targetLocation;
+		this.stopFetchingSource = stopFetchingSource;
 	}
 
 	/**
@@ -72,6 +80,16 @@ public class CheckpointOptions implements Serializable {
 		return targetLocation;
 	}
 
+	/**
+	 * Informed if the source stream task must be stopped before triggering the checkpoint
+	 * (only apply on savepoint).
+	 *
+	 * @return true if the source stream must be stopped before triggering savepoint false otherwise
+	 */
+	public boolean isStopFetchingSource() {
+		return stopFetchingSource;
+	}
+
 	@Override
 	public String toString() {
 		return "CheckpointOptions(" + checkpointType + ")";
@@ -79,7 +97,7 @@ public class CheckpointOptions implements Serializable {
 
 	// ------------------------------------------------------------------------
 
-	private static final CheckpointOptions FULL_CHECKPOINT = new CheckpointOptions(CheckpointType.FULL_CHECKPOINT, null);
+	private static final CheckpointOptions FULL_CHECKPOINT = new CheckpointOptions(CheckpointType.FULL_CHECKPOINT, null, false);
 
 	public static CheckpointOptions forFullCheckpoint() {
 		return FULL_CHECKPOINT;
@@ -87,7 +105,12 @@ public class CheckpointOptions implements Serializable {
 
 	public static CheckpointOptions forSavepoint(String targetDirectory) {
 		checkNotNull(targetDirectory, "targetDirectory");
-		return new CheckpointOptions(CheckpointType.SAVEPOINT, targetDirectory);
+		return new CheckpointOptions(CheckpointType.SAVEPOINT, targetDirectory, false);
+	}
+
+	public static CheckpointOptions forStopFetchingSourceSavepoint(String targetDirectory) {
+		checkNotNull(targetDirectory, "targetDirectory");
+		return new CheckpointOptions(CheckpointType.SAVEPOINT, targetDirectory, true);
 	}
 
 	// ------------------------------------------------------------------------

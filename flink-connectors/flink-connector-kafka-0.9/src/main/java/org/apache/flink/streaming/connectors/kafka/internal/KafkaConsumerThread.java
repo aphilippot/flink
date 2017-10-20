@@ -44,6 +44,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
@@ -112,6 +115,12 @@ public class KafkaConsumerThread extends Thread {
 
 	/** User callback to be invoked when commits completed. */
 	private volatile KafkaCommitCallback offsetCommitCallback;
+
+	/** handle stop fetching before savepoint behaviour **/
+	private volatile boolean waitShutdown = false;
+	private volatile Lock waitLock = new ReentrantLock();
+	private volatile Condition waitShutdownCondition = waitLock.newCondition();
+	private volatile Condition waitNotRunningCondition = waitLock.newCondition();
 
 	public KafkaConsumerThread(
 			Logger log,
@@ -260,6 +269,18 @@ public class KafkaConsumerThread extends Thread {
 				}
 			}
 			// end main fetch loop
+			if (waitShutdown) {
+				waitLock.lock();
+				waitNotRunningCondition.signal();
+				try {
+					while (waitShutdown) {
+						log.info("Kafka consumer thread stop running. Waiting shutdown");
+						waitShutdownCondition.await();
+					}
+				} finally {
+					waitLock.unlock();
+				}
+			}
 		}
 		catch (Throwable t) {
 			// let the main thread know and exit
@@ -286,6 +307,16 @@ public class KafkaConsumerThread extends Thread {
 	 */
 	public void shutdown() {
 		running = false;
+
+		if (waitShutdown) {
+			waitLock.lock();
+			try {
+				waitShutdown = false;
+				waitShutdownCondition.signal();
+			} finally {
+				waitLock.unlock();
+			}
+		}
 
 		// wake up all blocking calls on the queue
 		unassignedPartitionsQueue.close();
@@ -342,6 +373,21 @@ public class KafkaConsumerThread extends Thread {
 				// set this flag so that the wakeup state is restored once the reassignment is complete
 				hasBufferedWakeup = true;
 			}
+		}
+	}
+
+	void stopFetchLoop() {
+		log.info("Stop consumer thread loop");
+		waitLock.lock();
+		try {
+			waitShutdown = true;
+			running = false;
+			// return only once fetch loop is stoped and no more messages are consumed
+			waitNotRunningCondition.await();
+		} catch (InterruptedException e) {
+			log.warn("Kafka consumer waitNotRunningCondition was interrupted", e);
+		} finally {
+			waitLock.unlock();
 		}
 	}
 

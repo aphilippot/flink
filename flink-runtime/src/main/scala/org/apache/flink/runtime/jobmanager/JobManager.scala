@@ -611,7 +611,8 @@ class JobManager(
               coord.stopCheckpointScheduler()
 
               // Trigger the savepoint
-              val future = coord.triggerSavepoint(System.currentTimeMillis(), targetDirectory)
+              val future = coord.triggerSavepointAfterStopFetchingSource(
+                System.currentTimeMillis(), targetDirectory)
 
               val senderRef = sender()
               future.handleAsync[Void](

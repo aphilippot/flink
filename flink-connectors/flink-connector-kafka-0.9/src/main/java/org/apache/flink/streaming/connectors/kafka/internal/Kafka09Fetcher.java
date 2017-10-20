@@ -176,6 +176,11 @@ public class Kafka09Fetcher<T> extends AbstractFetcher<T, TopicPartition> {
 		consumerThread.shutdown();
 	}
 
+	@Override
+	public void stopFetchLoop() {
+		consumerThread.stopFetchLoop();
+	}
+
 	// ------------------------------------------------------------------------
 	//  The below methods are overridden in the 0.10 fetcher, which otherwise
 	//   reuses most of the 0.9 fetcher behavior

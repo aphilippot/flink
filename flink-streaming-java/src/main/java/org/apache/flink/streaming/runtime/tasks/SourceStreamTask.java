@@ -19,6 +19,7 @@
 package org.apache.flink.streaming.runtime.tasks;
 
 import org.apache.flink.annotation.Internal;
+import org.apache.flink.api.common.functions.StoppableFetchingSourceFunction;
 import org.apache.flink.runtime.checkpoint.CheckpointMetaData;
 import org.apache.flink.runtime.checkpoint.CheckpointOptions;
 import org.apache.flink.streaming.api.checkpoint.ExternallyInducedSource;
@@ -107,6 +108,11 @@ public class SourceStreamTask<OUT, SRC extends SourceFunction<OUT>, OP extends S
 
 	@Override
 	public boolean triggerCheckpoint(CheckpointMetaData checkpointMetaData, CheckpointOptions checkpointOptions) throws Exception {
+		if (checkpointOptions.isStopFetchingSource() &&
+			headOperator.getUserFunction() instanceof StoppableFetchingSourceFunction) {
+			((StoppableFetchingSourceFunction) headOperator.getUserFunction()).stopFetching();
+		}
+
 		if (!externallyInducedCheckpoints) {
 			return super.triggerCheckpoint(checkpointMetaData, checkpointOptions);
 		}

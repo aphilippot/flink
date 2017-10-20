@@ -46,6 +46,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
@@ -85,6 +88,12 @@ public class Kafka08Fetcher<T> extends AbstractFetcher<T, TopicAndPartition> {
 
 	/** Flag to track the main work loop as alive. */
 	private volatile boolean running = true;
+
+	/** handle stop fetch loop before savepoint behaviour **/
+	private volatile boolean waitCancel = false;
+	private volatile Lock waitLock = new ReentrantLock();
+	private volatile Condition waitCancelCondition = waitLock.newCondition();
+	private volatile Condition waitNotRunningCondition = waitLock.newCondition();
 
 	public Kafka08Fetcher(
 			SourceContext<T> sourceContext,
@@ -256,6 +265,19 @@ public class Kafka08Fetcher<T> extends AbstractFetcher<T, TopicAndPartition> {
 					// we end up here if somebody added something to the queue in the meantime --> continue to poll queue again
 				}
 			}
+
+			if (waitCancel) {
+				LOG.info("Fetcher stop running. Waiting shutdown");
+				waitLock.lock();
+				waitNotRunningCondition.signal();
+				try {
+					while (waitCancel) {
+						waitCancelCondition.await();
+					}
+				} finally {
+					waitLock.unlock();
+				}
+			}
 		}
 		catch (InterruptedException e) {
 			// this may be thrown because an exception on one of the concurrent fetcher threads
@@ -330,8 +352,34 @@ public class Kafka08Fetcher<T> extends AbstractFetcher<T, TopicAndPartition> {
 		// signal the main thread to exit
 		this.running = false;
 
+		if (waitCancel) {
+			waitLock.lock();
+			try {
+				waitCancel = false;
+				waitCancelCondition.signal();
+			} finally {
+				waitLock.unlock();
+			}
+		}
+
 		// make sure the main thread wakes up soon
 		this.unassignedPartitionsQueue.addIfOpen(MARKER);
+	}
+
+	@Override
+	public void stopFetchLoop() {
+		LOG.info("Stop fetcher fetch loop");
+		waitLock.lock();
+		try {
+			waitCancel = true;
+			running = false;
+			// return only once fetch loop is stoped and no more messages are consumed
+			waitNotRunningCondition.await();
+		} catch (InterruptedException e) {
+			LOG.warn("waitNotRunningCondition was interrupted", e);
+		} finally {
+			waitLock.unlock();
+		}
 	}
 
 	// ------------------------------------------------------------------------

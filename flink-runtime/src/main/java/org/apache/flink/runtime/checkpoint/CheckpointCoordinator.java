@@ -367,6 +367,27 @@ public class CheckpointCoordinator {
 	 * @throws Exception             Failures during triggering are forwarded
 	 */
 	public CompletableFuture<CompletedCheckpoint> triggerSavepoint(long timestamp, String targetDirectory) throws Exception {
+		return triggerSavepoint(timestamp, targetDirectory, false);
+	}
+
+	/**
+	 * Triggers a savepoint with the given savepoint directory as a target.
+	 *
+	 * @param timestamp The timestamp for the savepoint.
+	 * @param targetDirectory Target directory for the savepoint.
+	 * @return A future to the completed checkpoint
+	 * @throws IllegalStateException If no savepoint directory has been
+	 *                               specified and no default savepoint directory has been
+	 *                               configured
+	 * @throws Exception             Failures during triggering are forwarded
+	 */
+	public CompletableFuture<CompletedCheckpoint> triggerSavepointAfterStopFetchingSource(
+		long timestamp, String targetDirectory) throws Exception {
+		return triggerSavepoint(timestamp, targetDirectory, true);
+	}
+
+	private CompletableFuture<CompletedCheckpoint> triggerSavepoint(long timestamp, String targetDirectory,
+																   boolean stopFetchingSourceBefore) throws Exception {
 		checkNotNull(targetDirectory, "Savepoint target directory");
 
 		CheckpointProperties props = CheckpointProperties.forStandardSavepoint();
@@ -379,7 +400,8 @@ public class CheckpointCoordinator {
 			timestamp,
 			props,
 			savepointDirectory,
-			false);
+			false,
+			stopFetchingSourceBefore);
 
 		CompletableFuture<CompletedCheckpoint> result;
 
@@ -418,7 +440,7 @@ public class CheckpointCoordinator {
 	 * @return <code>true</code> if triggering the checkpoint succeeded.
 	 */
 	public boolean triggerCheckpoint(long timestamp, boolean isPeriodic) {
-		return triggerCheckpoint(timestamp, checkpointProperties, checkpointDirectory, isPeriodic).isSuccess();
+		return triggerCheckpoint(timestamp, checkpointProperties, checkpointDirectory, isPeriodic, false).isSuccess();
 	}
 
 	/**
@@ -433,11 +455,11 @@ public class CheckpointCoordinator {
 	public CompletableFuture<CompletedCheckpoint> triggerCheckpoint(long timestamp, CheckpointOptions options) throws Exception {
 		switch (options.getCheckpointType()) {
 			case SAVEPOINT:
-				return triggerSavepoint(timestamp, options.getTargetLocation());
+				return triggerSavepoint(timestamp, options.getTargetLocation(), options.isStopFetchingSource());
 
 			case FULL_CHECKPOINT:
 				CheckpointTriggerResult triggerResult =
-					triggerCheckpoint(timestamp, checkpointProperties, checkpointDirectory, false);
+					triggerCheckpoint(timestamp, checkpointProperties, checkpointDirectory, false, options.isStopFetchingSource());
 
 				if (triggerResult.isSuccess()) {
 					return triggerResult.getPendingCheckpoint().getCompletionFuture();
@@ -456,7 +478,8 @@ public class CheckpointCoordinator {
 			long timestamp,
 			CheckpointProperties props,
 			String targetDirectory,
-			boolean isPeriodic) {
+			boolean isPeriodic,
+			boolean stopFetchingSourceBefore) {
 
 		// Sanity check
 		if (props.externalizeCheckpoint() && targetDirectory == null) {
@@ -667,6 +690,8 @@ public class CheckpointCoordinator {
 				CheckpointOptions checkpointOptions;
 				if (!props.isSavepoint()) {
 					checkpointOptions = CheckpointOptions.forFullCheckpoint();
+				} else if (stopFetchingSourceBefore) {
+					checkpointOptions = CheckpointOptions.forStopFetchingSourceSavepoint(targetDirectory);
 				} else {
 					checkpointOptions = CheckpointOptions.forSavepoint(targetDirectory);
 				}
