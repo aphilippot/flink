@@ -19,11 +19,13 @@
 package org.apache.flink.streaming.api.scala
 
 import org.apache.flink.annotation.PublicEvolving
+import org.apache.flink.api.common.functions.{ IterationRuntimeContext, RichFunction, RuntimeContext }
 import org.apache.flink.api.common.typeinfo.TypeInformation
-import org.apache.flink.streaming.api.datastream.{AsyncDataStream => JavaAsyncDataStream}
-import org.apache.flink.streaming.api.functions.async.collector.{AsyncCollector => JavaAsyncCollector}
-import org.apache.flink.streaming.api.functions.async.{AsyncFunction => JavaAsyncFunction}
-import org.apache.flink.streaming.api.scala.async.{AsyncCollector, AsyncFunction, JavaAsyncCollectorWrapper}
+import org.apache.flink.configuration.Configuration
+import org.apache.flink.streaming.api.datastream.{ AsyncDataStream => JavaAsyncDataStream }
+import org.apache.flink.streaming.api.functions.async.collector.{ AsyncCollector => JavaAsyncCollector }
+import org.apache.flink.streaming.api.functions.async.{ RichAsyncFunction, AsyncFunction => JavaAsyncFunction }
+import org.apache.flink.streaming.api.scala.async.{ AsyncCollector, AsyncFunction, JavaAsyncCollectorWrapper }
 import org.apache.flink.util.Preconditions
 
 import scala.concurrent.duration.TimeUnit
@@ -67,11 +69,7 @@ object AsyncDataStream {
       capacity: Int)
     : DataStream[OUT] = {
 
-    val javaAsyncFunction = new JavaAsyncFunction[IN, OUT] {
-      override def asyncInvoke(input: IN, collector: JavaAsyncCollector[OUT]): Unit = {
-        asyncFunction.asyncInvoke(input, new JavaAsyncCollectorWrapper(collector))
-      }
-    }
+    val javaAsyncFunction = buildJavaAsyncFunction(input, asyncFunction)
 
     val outType : TypeInformation[OUT] = implicitly[TypeInformation[OUT]]
 
@@ -194,11 +192,7 @@ object AsyncDataStream {
       capacity: Int)
     : DataStream[OUT] = {
 
-    val javaAsyncFunction = new JavaAsyncFunction[IN, OUT] {
-      override def asyncInvoke(input: IN, collector: JavaAsyncCollector[OUT]): Unit = {
-        asyncFunction.asyncInvoke(input, new JavaAsyncCollectorWrapper[OUT](collector))
-      }
-    }
+    val javaAsyncFunction = buildJavaAsyncFunction(input, asyncFunction)
 
     val outType : TypeInformation[OUT] = implicitly[TypeInformation[OUT]]
 
@@ -294,5 +288,37 @@ object AsyncDataStream {
   : DataStream[OUT] = {
 
     orderedWait(input, timeout, timeUnit, DEFAULT_QUEUE_CAPACITY)(asyncFunction)
+  }
+
+  private def buildJavaAsyncFunction[IN, OUT](
+                  input: DataStream[IN],
+                  asyncFunction: AsyncFunction[IN, OUT]): JavaAsyncFunction[IN, OUT] = {
+    asyncFunction match {
+      case richAsyncFunction: AsyncFunction[IN,OUT] with RichFunction =>
+        new RichAsyncFunction[IN, OUT] {
+
+          override def asyncInvoke(input: IN, collector: JavaAsyncCollector[OUT]): Unit = {
+            asyncFunction.asyncInvoke(input, new JavaAsyncCollectorWrapper[OUT](collector))
+          }
+
+          override def open(parameters: Configuration): Unit = richAsyncFunction.open(parameters)
+
+          override def close(): Unit = richAsyncFunction.close()
+
+          override def setRuntimeContext(runtimeContext: RuntimeContext): Unit =
+            richAsyncFunction.setRuntimeContext(runtimeContext)
+
+          override def getRuntimeContext: RuntimeContext = richAsyncFunction.getRuntimeContext
+
+          override def getIterationRuntimeContext: IterationRuntimeContext =
+            richAsyncFunction.getIterationRuntimeContext
+
+        }
+      case _ => new JavaAsyncFunction[IN, OUT] {
+        override def asyncInvoke(input: IN, collector: JavaAsyncCollector[OUT]): Unit = {
+          asyncFunction.asyncInvoke(input, new JavaAsyncCollectorWrapper[OUT](collector))
+        }
+      }
+    }
   }
 }
