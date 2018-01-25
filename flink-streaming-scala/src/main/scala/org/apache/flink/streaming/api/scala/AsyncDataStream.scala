@@ -19,11 +19,12 @@
 package org.apache.flink.streaming.api.scala
 
 import org.apache.flink.annotation.PublicEvolving
+import org.apache.flink.api.common.functions.{ IterationRuntimeContext, RichFunction, RuntimeContext }
 import org.apache.flink.api.common.typeinfo.TypeInformation
-import org.apache.flink.streaming.api.datastream.{AsyncDataStream => JavaAsyncDataStream}
-import org.apache.flink.streaming.api.functions.async.{ResultFuture => JavaResultFuture}
-import org.apache.flink.streaming.api.functions.async.{AsyncFunction => JavaAsyncFunction}
-import org.apache.flink.streaming.api.scala.async.{AsyncFunction, JavaResultFutureWrapper, ResultFuture}
+import org.apache.flink.configuration.Configuration
+import org.apache.flink.streaming.api.datastream.{ AsyncDataStream => JavaAsyncDataStream }
+import org.apache.flink.streaming.api.functions.async.{ AsyncFunction => JavaAsyncFunction, ResultFuture => JavaResultFuture, RichAsyncFunction => JavaRichAsyncFunction }
+import org.apache.flink.streaming.api.scala.async._
 import org.apache.flink.util.Preconditions
 
 import scala.concurrent.duration.TimeUnit
@@ -67,11 +68,7 @@ object AsyncDataStream {
       capacity: Int)
     : DataStream[OUT] = {
 
-    val javaAsyncFunction = new JavaAsyncFunction[IN, OUT] {
-      override def asyncInvoke(input: IN, resultFuture: JavaResultFuture[OUT]): Unit = {
-        asyncFunction.asyncInvoke(input, new JavaResultFutureWrapper(resultFuture))
-      }
-    }
+    val javaAsyncFunction = buildJavaAsyncFunction(input, asyncFunction)
 
     val outType : TypeInformation[OUT] = implicitly[TypeInformation[OUT]]
 
@@ -194,11 +191,7 @@ object AsyncDataStream {
       capacity: Int)
     : DataStream[OUT] = {
 
-    val javaAsyncFunction = new JavaAsyncFunction[IN, OUT] {
-      override def asyncInvoke(input: IN, resultFuture: JavaResultFuture[OUT]): Unit = {
-        asyncFunction.asyncInvoke(input, new JavaResultFutureWrapper[OUT](resultFuture))
-      }
-    }
+    val javaAsyncFunction = buildJavaAsyncFunction(input, asyncFunction)
 
     val outType : TypeInformation[OUT] = implicitly[TypeInformation[OUT]]
 
@@ -294,5 +287,21 @@ object AsyncDataStream {
   : DataStream[OUT] = {
 
     orderedWait(input, timeout, timeUnit, DEFAULT_QUEUE_CAPACITY)(asyncFunction)
+  }
+
+  private def buildJavaAsyncFunction[IN, OUT](
+                    input: DataStream[IN],
+                    asyncFunction: AsyncFunction[IN, OUT]): JavaAsyncFunction[IN, OUT] = {
+
+    asyncFunction match {
+      case richAsyncFunction: RichAsyncFunction[IN, OUT] =>
+        new JavaRichAsyncFunctionWrapper[IN,OUT](richAsyncFunction)
+      case _ => new JavaAsyncFunction[IN, OUT] {
+        override def asyncInvoke(input: IN, resultFuture: JavaResultFuture[OUT]): Unit = {
+          asyncFunction.asyncInvoke(input, new JavaResultFutureWrapper(resultFuture))
+        }
+      }
+
+    }
   }
 }
